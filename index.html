@@ -339,27 +339,36 @@
             const today = new Date();
             const startDate = new Date(loan.data_emprestimo);
             const dueDate = new Date(loan.data_vencimento);
-            const endDate = today > dueDate ? today : dueDate;
-
-            const diffTime = Math.abs(endDate - startDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
             const principal = loan.valor_principal || 0;
             const rateMensal = (loan.taxa_juros_mensal || 0) / 100;
-
-            // TAXA DIÁRIA SIMPLES (Base 30)
             const dailyRate = rateMensal / 30;
 
-            // FÓRMULA JUROS COMPOSTOS DIÁRIOS (Capitalização Diária)
-            // M = P * (1 + i_diario)^Dias
-            const montante = principal * Math.pow(1 + dailyRate, diffDays);
-            const jurosTotal = montante - principal;
+            // 1. CÁLCULO DO CONTRATO (Até o vencimento)
+            // Calculamos meses inteiros baseados em blocos de 30 dias
+            const contractDiffTime = Math.abs(dueDate - startDate);
+            const contractDays = Math.ceil(contractDiffTime / (1000 * 60 * 60 * 24));
+            const contractMonths = Math.floor(contractDays / 30) || 1; // Mínimo 1 mês
 
-            const totalDevedor = montante - (loan.total_pago || 0);
+            // Montante do Contrato
+            const montanteContrato = principal * Math.pow(1 + rateMensal, contractMonths);
+
+            // 2. CÁLCULO DE ATRASO (Pós vencimento)
+            let montanteFinal = montanteContrato;
+            let daysOverdue = 0;
+
+            if (today > dueDate) {
+                const overdueDiffTime = Math.abs(today - dueDate);
+                daysOverdue = Math.floor(overdueDiffTime / (1000 * 60 * 60 * 24));
+                // Aplica juro diário sobre o montante acumulado do contrato
+                montanteFinal = montanteContrato * Math.pow(1 + dailyRate, daysOverdue);
+            }
+
+            const totalDevedor = montanteFinal - (loan.total_pago || 0);
 
             return {
-                days: diffDays,
-                jurosTotal: jurosTotal,
+                days: contractDays + daysOverdue,
+                jurosTotal: montanteFinal - principal,
                 totalDebito: totalDevedor > 0 ? totalDevedor : 0,
                 status: today > dueDate ? (totalDevedor <= 0 ? 'Quitado' : 'Vencido') : 'Aguardando'
             };
@@ -535,11 +544,15 @@
                                 
                                 <div class="space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Data do Empréstimo</label>
-                                    <input name="data_emprestimo" type="date" value="${today}" required>
+                                    <input id="data_emprestimo" name="data_emprestimo" type="date" value="${today}" required onchange="
+                                        const d = new Date(this.value);
+                                        d.setDate(d.getDate() + 30);
+                                        document.getElementById('data_vencimento').value = d.toISOString().split('T')[0];
+                                    ">
                                 </div>
                                 <div class="space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Data de Vencimento</label>
-                                    <input name="data_vencimento" type="date" required>
+                                    <input id="data_vencimento" name="data_vencimento" type="date" required>
                                 </div>
 
                                 <div class="space-y-3">
