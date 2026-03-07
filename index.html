@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financeira do Paulo - Gestão de Crédito</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --emerald-600: #1f7a63;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+        }
+
+        .emerald-primary {
+            background-color: var(--emerald-600);
+        }
+
+        .emerald-text {
+            color: var(--emerald-600);
+        }
+
+        .sidebar-item-active {
+            background-color: var(--emerald-600);
+            color: white !important;
+            box-shadow: 0 10px 25px -5px rgba(31, 122, 99, 0.3);
+        }
+
+        .card-radius {
+            border-radius: 2.5rem;
+        }
+
+        .item-radius {
+            border-radius: 1.5rem;
+        }
+
+        .pill-radius {
+            border-radius: 9999px;
+        }
+
+        .shadow-soft {
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.04);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        input {
+            border-radius: 1.25rem !important;
+            background-color: #f1f5f9 !important;
+            border: 2px solid transparent !important;
+            transition: all 0.2s ease !important;
+            padding: 1rem 1.5rem !important;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        input:focus {
+            background-color: white !important;
+            border-color: var(--emerald-600) !important;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(31, 122, 99, 0.1);
+        }
+
+        button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--emerald-600);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="overflow-x-hidden md:p-6 h-screen">
+    <div id="app" class="h-full flex flex-col md:flex-row gap-6">
+        <!-- Auth View -->
+        <div id="auth-view" class="fixed inset-0 z-50 flex items-center justify-center bg-[#f8fafc]">
+            <div class="text-center">
+                <div class="loader mx-auto mb-4"></div>
+                <p class="font-bold text-slate-400">Carregando sistema...</p>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar"
+            class="hidden flex-col w-80 bg-white card-radius shadow-soft border border-slate-100 h-full sticky top-0 overflow-hidden">
+            <div class="p-10 flex-1 overflow-y-auto no-scrollbar">
+                <div class="flex items-center gap-3 mb-12">
+                    <div
+                        class="w-12 h-12 emerald-primary rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
+                        <i data-lucide="piggy-bank" class="text-white w-7 h-7"></i>
+                    </div>
+                    <h1 class="text-xl font-black tracking-tight text-slate-800">Financeira do Paulo</h1>
+                </div>
+                <nav class="space-y-4">
+                    <button onclick="navigate('loans')" id="nav-loans"
+                        class="nav-btn w-full flex items-center gap-4 px-6 py-4 item-radius font-bold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all text-left">
+                        <i data-lucide="layout-grid" class="w-5 h-5"></i><span>Empréstimos</span>
+                    </button>
+                    <button onclick="navigate('clients')" id="nav-clients"
+                        class="nav-btn w-full flex items-center gap-4 px-6 py-4 item-radius font-bold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all text-left">
+                        <i data-lucide="users" class="w-5 h-5"></i><span>Clientes</span>
+                    </button>
+                    <button onclick="navigate('new-loan')" id="nav-new-loan"
+                        class="nav-btn w-full flex items-center gap-4 px-6 py-4 item-radius font-bold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all text-left">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i><span>Novo Empréstimo</span>
+                    </button>
+                    <button onclick="navigate('settings')" id="nav-settings"
+                        class="nav-btn w-full flex items-center gap-4 px-6 py-4 item-radius font-bold text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all text-left">
+                        <i data-lucide="settings" class="w-5 h-5"></i><span>Ajustes</span>
+                    </button>
+                </nav>
+            </div>
+            <div class="p-8 mt-auto">
+                <div class="bg-emerald-50 card-radius p-5 border border-emerald-100/50">
+                    <div class="flex items-center gap-4 mb-4">
+                        <img id="user-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Michael"
+                            class="w-12 h-12 rounded-xl bg-white shadow-sm border border-white">
+                        <div class="overflow-hidden">
+                            <p id="user-display-name" class="font-black text-slate-800 text-sm truncate">Admin</p>
+                            <p class="text-[10px] text-emerald-700/60 font-bold uppercase tracking-widest truncate">
+                                Administrador</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()"
+                        class="w-full flex items-center justify-center gap-2 py-3 bg-white text-slate-400 font-black hover:text-red-500 item-radius text-xs shadow-sm">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>Sair do Sistema
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main id="main-content" class="flex-1 overflow-y-auto no-scrollbar hidden md:pr-4">
+            <!-- Content injected here -->
+        </main>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://dxotsjduopnvmmlkxjsm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4b3RzamR1b3Budm1tbGt4anNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4Mzk1MDMsImV4cCI6MjA4ODQxNTUwM30.-obR0ajo2oZIlWic8QHdgoOjthLH3TyMwm6Z7lIgyAo';
+
+        let client;
+        try {
+            client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {
+            console.error("Erro Supabase:", e);
+        }
+
+        const state = {
+            user: null,
+            currentScreen: 'loans',
+            isAuthMode: 'login',
+            loading: false,
+            loans: [],
+            clients: []
+        };
+
+        async function init() {
+            try {
+                const { data, error } = await client.auth.getSession();
+                if (error) {
+                    console.error("Erro de autorização Supabase:", error.message);
+                    // Se o erro for de autorização, limpa o estado para forçar novo login
+                    if (error.message.includes('authorization')) {
+                        state.user = null;
+                        render();
+                        return;
+                    }
+                    throw error;
+                }
+
+                if (data.session) {
+                    state.user = data.session.user;
+                    const displayName = state.user.email ? state.user.email.split('@')[0] : 'Usuário';
+                    document.getElementById('user-display-name').textContent = displayName;
+                    await fetchData();
+                }
+            } catch (e) {
+                console.error("Falha na inicialização:", e.message);
+            }
+            render();
+        }
+
+        async function fetchData() {
+            state.loading = true;
+            render();
+            try {
+                const { data: loans } = await client.from('emprestimos').select('*, clientes(nome)');
+                const { data: clients } = await client.from('clientes').select('*').order('nome');
+                state.loans = loans || [];
+                state.clients = clients || [];
+            } catch (e) {
+                console.warn("Erro ao buscar dados:", e);
+            }
+            state.loading = false;
+            render();
+        }
+
+        async function authAction(email, password) {
+            state.loading = true;
+            render();
+            try {
+                if (state.isAuthMode === 'login') {
+                    const { data, error } = await client.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    state.user = data.user;
+                    init();
+                } else {
+                    const { error } = await client.auth.signUp({ email, password });
+                    if (error) throw error;
+                    alert("Conta criada! Verifique seu e-mail ou faça login agora.");
+                    state.isAuthMode = 'login';
+                    render();
+                }
+            } catch (e) {
+                alert(e.message || "Erro de conexão");
+            }
+            state.loading = false;
+            render();
+        }
+
+        async function logout() {
+            await client.auth.signOut();
+            state.user = null;
+            render();
+        }
+
+        // SALVAR CLIENTE
+        async function saveClient(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                nome: formData.get('nome'),
+                cpf: formData.get('cpf'),
+                telefone: formData.get('telefone'),
+                endereco: formData.get('endereco'),
+            };
+
+            state.loading = true;
+            render();
+            try {
+                const { error } = await client.from('clientes').insert([data]);
+                if (error) throw error;
+                alert("Cliente cadastrado com sucesso!");
+                state.currentScreen = 'clients';
+                await fetchData();
+            } catch (e) {
+                alert("Erro ao salvar cliente: " + e.message + "\n\nCertifique-se de que a tabela 'clientes' existe com as colunas: nome, cpf, telefone, endereco.");
+            }
+            state.loading = false;
+            render();
+        }
+
+        // SALVAR EMPRÉSTIMO
+        async function saveLoan(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                cliente_id: formData.get('cliente_id'),
+                valor_principal: parseFloat(formData.get('valor_principal')),
+                taxa_juros_mensal: parseFloat(formData.get('taxa_juros_mensal')),
+                data_emprestimo: formData.get('data_emprestimo'),
+                data_vencimento: formData.get('data_vencimento'),
+                total_pago: 0,
+                status: 'Ativo'
+            };
+
+            state.loading = true;
+            render();
+            try {
+                const { error } = await client.from('emprestimos').insert([data]);
+                if (error) throw error;
+                alert("Empréstimo registrado com sucesso!");
+                state.currentScreen = 'loans';
+                await fetchData();
+            } catch (e) {
+                alert("Erro ao salvar: " + e.message);
+            }
+            state.loading = false;
+            render();
+        }
+
+        function calculateCurrentDebt(loan) {
+            const today = new Date();
+            const startDate = new Date(loan.data_emprestimo);
+            const dueDate = new Date(loan.data_vencimento);
+
+            // Usamos a maior data entre 'hoje' e o 'vencimento' para o cálculo
+            const endDate = today > dueDate ? today : dueDate;
+
+            // Diferença em dias
+            const diffTime = Math.abs(endDate - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            // Converter dias para meses (base 30)
+            const months = diffDays / 30;
+
+            const principal = loan.valor_principal || 0;
+            const rate = (loan.taxa_juros_mensal || 0) / 100;
+
+            // FÓRMULA JUROS COMPOSTOS: M = P * (1 + i)^n
+            const montante = principal * Math.pow(1 + rate, months);
+            const jurosTotal = montante - principal;
+
+            const totalDevedor = montante - (loan.total_pago || 0);
+
+            return {
+                jurosTotal: jurosTotal,
+                totalDebito: totalDevedor > 0 ? totalDevedor : 0,
+                status: today > dueDate ? (totalDevedor <= 0 ? 'Quitado' : 'Vencido') : 'Aguardando'
+            };
+        }
+
+        async function processPayment(loanId, currentTotal) {
+            const amount = prompt("Digite o valor do pagamento/desconto (R$):");
+            if (!amount || isNaN(amount)) return;
+
+            const loan = state.loans.find(l => l.id === loanId);
+            const newTotalPago = (loan.total_pago || 0) + parseFloat(amount);
+
+            try {
+                const { error } = await client.from('emprestimos').update({ total_pago: newTotalPago }).eq('id', loanId);
+                if (error) throw error;
+                await fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        async function confirmPayoff(loanId) {
+            if (!confirm("Confirmar quitação total deste empréstimo?")) return;
+            try {
+                const { error } = await client.from('emprestimos').update({ status: 'Quitado' }).eq('id', loanId);
+                if (error) throw error;
+                await fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        async function deleteLoan(loanId) {
+            if (!confirm("Tem certeza que deseja excluir permanentemente?")) return;
+            try {
+                const { error } = await client.from('emprestimos').delete().eq('id', loanId);
+                if (error) throw error;
+                await fetchData();
+            } catch (e) { alert(e.message); }
+        }
+
+        function render() {
+            const authView = document.getElementById('auth-view');
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+
+            if (!state.user) {
+                authView.classList.remove('hidden');
+                sidebar.classList.add('hidden');
+                sidebar.classList.remove('md:flex');
+                main.classList.add('hidden');
+                main.classList.remove('md:block');
+                const isLogin = state.isAuthMode === 'login';
+
+                authView.innerHTML = `
+                    <div class="bg-white p-12 card-radius shadow-2xl w-full max-w-md border border-slate-100 animate-slide-up text-center mx-4">
+                        <div class="emerald-primary w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-emerald-100">
+                            <i data-lucide="piggy-bank" class="text-white w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-3xl font-black mb-2 text-slate-800">${isLogin ? 'Financeira' : 'Criar Conta'}</h2>
+                        <p class="text-slate-400 font-bold mb-10 uppercase tracking-widest text-[10px]">${isLogin ? 'Acesso Restrito' : 'Gestor Admin'}</p>
+                        <form onsubmit="event.preventDefault(); authAction(this.email.value, this.pass.value)" class="space-y-5 text-left">
+                            <input name="email" type="email" placeholder="E-mail" required>
+                            <input name="pass" type="password" placeholder="Senha" required>
+                            <button type="submit" class="w-full emerald-primary text-white py-5 rounded-2xl font-black shadow-lg hover:brightness-110 flex items-center justify-center gap-3">
+                                ${state.loading ? '<div class="loader"></div>' : (isLogin ? 'Entrar' : 'Cadastrar')}
+                            </button>
+                        </form>
+                        <button onclick="state.isAuthMode = '${isLogin ? 'signup' : 'login'}'; render();" class="mt-8 text-emerald-600 font-black text-xs uppercase tracking-widest hover:underline">
+                            ${isLogin ? 'Cadastrar novo acesso' : 'Voltar para o Login'}
+                        </button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            authView.classList.add('hidden');
+            sidebar.classList.remove('hidden');
+            sidebar.classList.add('md:flex');
+            main.classList.remove('hidden');
+            main.classList.add('md:block');
+
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('sidebar-item-active'));
+            document.getElementById('nav-' + (state.currentScreen === 'new-client' ? 'clients' : state.currentScreen))?.classList.add('sidebar-item-active');
+
+            switch (state.currentScreen) {
+                case 'loans': renderLoans(main); break;
+                case 'clients': renderClients(main); break;
+                case 'new-client': renderNewClient(main); break;
+                case 'new-loan': renderNewLoan(main); break;
+                default: main.innerHTML = '<div class="p-20 text-center font-black text-slate-200">Em construção...</div>';
+            }
+            lucide.createIcons();
+        }
+
+        function renderLoans(container) {
+            container.innerHTML = `
+                <div class="animate-slide-up py-6 space-y-10">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-5xl font-black text-slate-800 tracking-tight">Empréstimos</h2>
+                            <p class="text-slate-400 font-bold mt-2 ml-1 uppercase tracking-widest text-[10px]">VP: Principal | JA: Juros Atual | VTD: Débito Total</p>
+                        </div>
+                        <button onclick="navigate('new-loan')" class="emerald-primary text-white px-10 py-5 pill-radius font-black shadow-2xl shadow-emerald-100 hover:scale-105">+ Novo Empréstimo</button>
+                    </div>
+                    <div class="bg-white card-radius shadow-soft border border-slate-50 overflow-hidden">
+                        <div class="p-10 border-b border-slate-50 bg-slate-50/20 text-[11px] font-black text-slate-300 uppercase tracking-widest grid grid-cols-12 px-12">
+                            <div class="col-span-3">Cliente</div>
+                            <div class="col-span-1">V.P.</div>
+                            <div class="col-span-2">Vencimento</div>
+                            <div class="col-span-1">J.A.</div>
+                            <div class="col-span-2">V.T.D.</div>
+                            <div class="col-span-1 text-center">Status</div>
+                            <div class="col-span-2 text-right">Ações</div>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            ${state.loans.length > 0 ? state.loans.map(loan => {
+                const calc = loan.status === 'Quitado' ?
+                    { jurosTotal: 0, totalDebito: 0, status: 'Quitado' } :
+                    calculateCurrentDebt(loan);
+
+                return `
+                                <div class="grid grid-cols-12 items-center p-6 bg-white hover:bg-slate-50 rounded-[2rem] transition-all group border border-transparent hover:border-slate-100">
+                                    <div class="col-span-3">
+                                        <p class="font-black text-lg text-slate-800 truncate">${loan.clientes?.nome || '---'}</p>
+                                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Rate: ${loan.taxa_juros_mensal}%</p>
+                                    </div>
+                                    <div class="col-span-1 font-bold text-slate-600">R$${(loan.valor_principal || 0).toLocaleString('pt-BR')}</div>
+                                    <div class="col-span-2 text-slate-500 font-bold text-sm">${new Date(loan.data_vencimento).toLocaleDateString('pt-BR')}</div>
+                                    <div class="col-span-1 font-bold text-red-400">R$${calc.jurosTotal.toFixed(2)}</div>
+                                    <div class="col-span-2 font-black text-emerald-700 text-lg">R$${calc.totalDebito.toFixed(2)}</div>
+                                    <div class="col-span-1 text-center">
+                                        <span class="px-3 py-1 pill-radius text-[8px] font-black uppercase tracking-widest ${calc.status === 'Vencido' ? 'bg-red-100 text-red-600' : (calc.status === 'Quitado' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500')}">
+                                            ${calc.status}
+                                        </span>
+                                    </div>
+                                    <div class="col-span-2 text-right flex justify-end gap-2 pr-4">
+                                        <button title="Quitar" onclick="confirmPayoff('${loan.id}')" class="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><i data-lucide="check-check" class="w-4 h-4"></i></button>
+                                        <button title="Desconto/Baixa" onclick="processPayment('${loan.id}', ${calc.totalDebito})" class="p-3 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-600 hover:text-white transition-all"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
+                                        <button title="Remover" onclick="deleteLoan('${loan.id}')" class="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                            `}).join('') : '<p class="text-center p-20 text-slate-300 font-bold uppercase tracking-widest text-xs">Aguardando lançamentos...</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderNewLoan(container) {
+            const today = new Date().toISOString().split('T')[0];
+            container.innerHTML = `
+                <div class="animate-slide-up py-6 space-y-10 max-w-4xl mx-auto">
+                    <button onclick="navigate('loans')" class="flex items-center gap-3 text-slate-300 font-black uppercase text-[10px] tracking-widest hover:text-emerald-600 transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar para Lista
+                    </button>
+                    
+                    <div class="bg-white p-16 card-radius shadow-soft border border-slate-100">
+                        <div class="mb-12 border-l-8 border-emerald-600 pl-8">
+                            <h2 class="text-4xl font-black text-slate-800 tracking-tight">Cadastro de Empréstimo</h2>
+                            <p class="text-slate-400 font-bold mt-1 uppercase tracking-[0.2em] text-[10px]">Apenas dados iniciais. Juros e Status são automáticos.</p>
+                        </div>
+                        
+                        <form onsubmit="saveLoan(event)" class="space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="col-span-1 md:col-span-2 space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Selecionar Cliente</label>
+                                    <select name="cliente_id" required class="w-full bg-slate-50 border-none px-12 py-5 rounded-2xl font-bold focus:ring-4 focus:ring-emerald-50 outline-none appearance-none">
+                                        <option value="" disabled selected>Escolha um cliente da lista</option>
+                                        ${state.clients.map(c => `<option value="${c.id}">${c.nome} - CPF: ${c.cpf || '---'}</option>`).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Data do Empréstimo</label>
+                                    <input name="data_emprestimo" type="date" value="${today}" required>
+                                </div>
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Data de Vencimento</label>
+                                    <input name="data_vencimento" type="date" required>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor do Empréstimo (R$)</label>
+                                    <input id="valor_principal" name="valor_principal" type="number" step="0.01" placeholder="0,00" required>
+                                </div>
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Taxa de Juros Mensal (%)</label>
+                                    <input id="taxa_juros_mensal" name="taxa_juros_mensal" type="number" step="0.1" placeholder="0,0" required>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-10 flex gap-4">
+                                <button type="button" onclick="navigate('loans')" class="flex-1 bg-slate-100 text-slate-400 py-6 rounded-3xl font-black text-xl hover:bg-slate-200 transition-all">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="flex-[2] emerald-primary text-white py-6 rounded-3xl font-black text-xl shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all">
+                                    ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="check-circle" class="w-6 h-6"></i> Salvar Empréstimo'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderClients(container) {
+            container.innerHTML = `
+                <div class="animate-slide-up py-6 space-y-10">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-5xl font-black text-slate-800 tracking-tight">Clientes</h2>
+                            <p class="text-slate-400 font-bold mt-2 ml-1 uppercase tracking-widest text-[10px]">Gerenciamento de Carteira</p>
+                        </div>
+                        <button onclick="navigate('new-client')" class="emerald-primary text-white px-10 py-5 pill-radius font-black shadow-2xl shadow-emerald-100 hover:scale-105">+ Cadastrar Cliente</button>
+                    </div>
+                    
+                    <div class="bg-white card-radius shadow-soft border border-slate-50 overflow-hidden">
+                        <div class="p-10 border-b border-slate-50 bg-slate-50/20 text-[11px] font-black text-slate-300 uppercase tracking-widest grid grid-cols-12 px-12">
+                            <div class="col-span-5">Nome completo / CPF</div>
+                            <div class="col-span-4">Contato / Telefone</div>
+                            <div class="col-span-3 text-right">Opções</div>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            ${state.clients.length > 0 ? state.clients.map(c => `
+                                <div class="grid grid-cols-12 items-center p-8 bg-white hover:bg-emerald-50/30 rounded-[2rem] transition-all group border border-transparent hover:border-emerald-100">
+                                    <div class="col-span-5">
+                                        <p class="font-black text-xl text-slate-800 tracking-tight">${c.nome}</p>
+                                        <p class="text-[10px] font-black text-slate-300 mt-1 tracking-[0.2em] uppercase">${c.cpf || 'CPF não informado'}</p>
+                                    </div>
+                                    <div class="col-span-4 text-emerald-700 font-bold flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><i data-lucide="phone" class="w-4 h-4"></i></div>
+                                        ${c.telefone || '---'}
+                                    </div>
+                                    <div class="col-span-3 text-right flex justify-end gap-3">
+                                        <button class="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:emerald-text shadow-sm transition-all"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                        <button class="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-red-500 shadow-sm transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                            `).join('') : '<p class="text-center p-20 text-slate-300 font-bold uppercase tracking-widest text-xs">Puxando clientes do banco...</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderNewClient(container) {
+            container.innerHTML = `
+                <div class="animate-slide-up py-6 space-y-10 max-w-4xl mx-auto">
+                    <button onclick="navigate('clients')" class="flex items-center gap-3 text-slate-300 font-black uppercase text-[10px] tracking-widest hover:text-emerald-600 transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar para Lista
+                    </button>
+                    
+                    <div class="bg-white p-16 card-radius shadow-soft border border-slate-100">
+                        <div class="mb-12 border-l-8 border-emerald-600 pl-8">
+                            <h2 class="text-4xl font-black text-slate-800 tracking-tight">Novo Cliente</h2>
+                            <p class="text-slate-400 font-bold mt-1 uppercase tracking-[0.2em] text-[10px]">Cadastro de Dados Pessoais</p>
+                        </div>
+                        
+                        <form onsubmit="saveClient(event)" class="space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Nome Completo</label>
+                                    <input name="nome" type="text" placeholder="Nome do cliente" required>
+                                </div>
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">CPF</label>
+                                    <input name="cpf" type="text" placeholder="000.000.000-00" required>
+                                </div>
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Telefone / WhatsApp</label>
+                                    <input name="telefone" type="text" placeholder="(00) 00000-0000">
+                                </div>
+                                <div class="space-y-3">
+                                    <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Endereço</label>
+                                    <input name="endereco" type="text" placeholder="Rua, Número, Bairro">
+                                </div>
+                            </div>
+                            
+                            <div class="pt-10">
+                                <button type="submit" class="w-full emerald-primary text-white py-6 rounded-3xl font-black text-xl shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all">
+                                    ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="check-circle" class="w-6 h-6"></i> Confirmar Cadastro'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        const navigate = (s) => { state.currentScreen = s; render(); };
+        init();
+    </script>
+</body>
+
+</html>
