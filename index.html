@@ -258,6 +258,7 @@
             loading: false,
             loans: [],
             clients: [],
+            users: [],
             isSidebarOpen: false
         };
 
@@ -310,9 +311,16 @@
                 const { data: clients } = await client.from('clientes').select('*').order('nome');
                 state.loans = loans || [];
                 state.clients = clients || [];
+
+                // Fetch users if we are on settings screen
+                if (state.currentScreen === 'settings') {
+                    const { data: users, error: userError } = await client.rpc('get_users');
+                    if (!userError) state.users = users || [];
+                }
             } catch (e) {
                 console.warn("Erro ao buscar dados:", e);
             }
+            state.loading = true; // Still loading? No, should be false
             state.loading = false;
             render();
         }
@@ -465,6 +473,45 @@
             } catch (e) { alert(e.message); }
         }
 
+        async function registerUser(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            state.loading = true;
+            render();
+            try {
+                // In Supabase, signUp creates a user. 
+                // For admin management, we usually use a service_role or specialized function.
+                // We'll use the public signUp for simplicity or an RPC if configured.
+                const { error } = await client.auth.signUp({ email, password });
+                if (error) throw error;
+                alert("Usuário pré-cadastrado! Ele precisará confirmar o e-mail ou você pode configurar o auto-confirm no Supabase.");
+                event.target.reset();
+                await fetchData();
+            } catch (e) {
+                alert("Erro ao cadastrar: " + e.message);
+            }
+            state.loading = false;
+            render();
+        }
+
+        async function removeUser(userId) {
+            if (!confirm("Remover este usuário permanentemente?")) return;
+            state.loading = true;
+            render();
+            try {
+                const { error } = await client.rpc('delete_user', { user_id: userId });
+                if (error) throw error;
+                await fetchData();
+            } catch (e) {
+                alert("Erro ao remover: " + e.message);
+            }
+            state.loading = false;
+            render();
+        }
+
         function render() {
             const authView = document.getElementById('auth-view');
             const sidebar = document.getElementById('sidebar');
@@ -519,6 +566,7 @@
                 case 'clients': renderClients(main); break;
                 case 'new-client': renderNewClient(main); break;
                 case 'new-loan': renderNewLoan(main); break;
+                case 'settings': renderSettings(main); break;
                 default: main.innerHTML = '<div class="p-20 text-center font-black text-slate-200">Em construção...</div>';
             }
             lucide.createIcons();
@@ -757,6 +805,78 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderSettings(container) {
+            container.innerHTML = `
+                <div class="animate-slide-up py-4 md:py-6 space-y-10 px-4 md:px-0 max-w-5xl mx-auto">
+                    <div>
+                        <h2 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight">Ajustes</h2>
+                        <p class="text-slate-400 font-bold mt-2 uppercase tracking-widest text-[10px]">Gestão de Usuários e Segurança</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- User Registration -->
+                        <div class="lg:col-span-1">
+                            <div class="bg-white p-8 card-radius shadow-soft border border-slate-100 h-full">
+                                <h3 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                                    <i data-lucide="user-plus" class="text-emerald-600"></i> Novo Usuário
+                                </h3>
+                                <form onsubmit="registerUser(event)" class="space-y-4">
+                                    <div class="space-y-1">
+                                        <label class="px-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">E-mail</label>
+                                        <input name="email" type="email" placeholder="email@exemplo.com" required>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="px-4 text-[9px] font-black text-slate-300 uppercase tracking-widest">Senha Provisória</label>
+                                        <input name="password" type="password" placeholder="••••••••" required>
+                                    </div>
+                                    <button type="submit" class="w-full emerald-primary text-white py-4 rounded-2xl font-black shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2">
+                                        ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="plus" class="w-4 h-4"></i> Cadastrar'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- User List -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white p-8 card-radius shadow-soft border border-slate-100">
+                                <h3 class="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                                    <i data-lucide="shield-check" class="text-emerald-600"></i> Usuários Ativos
+                                </h3>
+                                
+                                <div class="space-y-4">
+                                    ${state.users.map(user => `
+                                        <div class="flex items-center justify-between p-4 bg-slate-50 hover:bg-emerald-50/30 rounded-2xl border border-transparent hover:border-emerald-100 transition-all group">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-600 border border-slate-100">
+                                                    <i data-lucide="user" class="w-5 h-5"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="font-bold text-slate-700">${user.email}</p>
+                                                    <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest">UID: ${user.id.substring(0, 8)}...</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <button onclick="removeUser('${user.id}')" class="p-3 bg-white text-slate-300 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                    ${state.users.length === 0 ? `
+                                        <div class="text-center py-10">
+                                            <p class="text-slate-300 font-bold uppercase tracking-widest text-[10px]">Aguardando conexão administrativa...</p>
+                                            <p class="text-[9px] text-slate-400 mt-2 px-10">Nota: A listagem de usuários requer permissões RPC no Supabase.</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
