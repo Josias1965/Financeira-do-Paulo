@@ -163,7 +163,7 @@
 
         <!-- Mobile Header (Visible only on mobile) -->
         <header id="mobile-header"
-            class="md:hidden flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-40">
+            class="hidden md:hidden flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-40">
             <div class="flex items-center gap-2">
                 <div
                     class="w-10 h-10 emerald-primary rounded-xl flex items-center justify-center shadow-lg shadow-emerald-50">
@@ -182,7 +182,7 @@
 
         <!-- Sidebar -->
         <aside id="sidebar"
-            class="sidebar-transition fixed md:sticky top-0 left-0 z-50 flex flex-col w-80 bg-white md:card-radius shadow-xl md:shadow-soft border-r md:border border-slate-100 h-screen md:h-full -translate-x-full md:translate-x-0 overflow-hidden">
+            class="hidden sidebar-transition fixed md:sticky top-0 left-0 z-50 flex flex-col w-80 bg-white md:card-radius shadow-xl md:shadow-soft border-r md:border border-slate-100 h-screen md:h-full -translate-x-full md:translate-x-0 overflow-hidden">
             <div class="p-8 md:p-10 flex-1 overflow-y-auto no-scrollbar">
                 <div class="flex items-center justify-between mb-12">
                     <div class="flex items-center gap-3 text-left">
@@ -235,7 +235,7 @@
         </aside>
 
         <!-- Main -->
-        <main id="main-content" class="flex-1 overflow-y-auto no-scrollbar md:pr-4 h-full">
+        <main id="main-content" class="hidden flex-1 overflow-y-auto no-scrollbar md:pr-4 h-full">
             <!-- Content injected here -->
         </main>
     </div>
@@ -278,24 +278,26 @@
         async function init() {
             try {
                 const { data, error } = await client.auth.getSession();
+
                 if (error) {
                     console.error("Erro de autorização Supabase:", error.message);
-                    if (error.message.includes('authorization')) {
-                        state.user = null;
-                        render();
-                        return;
-                    }
-                    throw error;
+                    state.user = null;
+                    render();
+                    return;
                 }
 
                 if (data.session) {
                     state.user = data.session.user;
                     const displayName = state.user.email ? state.user.email.split('@')[0] : 'Usuário';
-                    document.getElementById('user-display-name').textContent = displayName;
+                    const userDisplayNameEl = document.getElementById('user-display-name');
+                    if (userDisplayNameEl) userDisplayNameEl.textContent = displayName;
                     await fetchData();
+                } else {
+                    state.user = null;
                 }
             } catch (e) {
                 console.error("Falha na inicialização:", e.message);
+                state.user = null;
             }
             render();
         }
@@ -472,6 +474,7 @@
             if (!state.user) {
                 authView.classList.remove('hidden');
                 sidebar.classList.add('-translate-x-full');
+                sidebar.classList.add('hidden'); // Ensure it's totally gone
                 mobileHeader.classList.add('hidden');
                 main.classList.add('hidden');
 
@@ -500,6 +503,7 @@
             }
 
             authView.classList.add('hidden');
+            sidebar.classList.remove('hidden'); // Show sidebar for logged in
             mobileHeader.classList.remove('hidden');
             main.classList.remove('hidden');
 
