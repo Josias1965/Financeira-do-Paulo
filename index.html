@@ -315,8 +315,13 @@
                 // Fetch users if we are on settings screen
                 if (state.currentScreen === 'settings') {
                     const { data: users, error: userError } = await client.rpc('get_users');
-                    if (!userError) state.users = users || [];
-                    else console.error("Erro RPC Usuários:", userError);
+                    if (!userError) {
+                        state.users = users || [];
+                    } else {
+                        console.error("Erro RPC Usuários:", userError.message);
+                        // Apenas logar no console para não interromper a UX, 
+                        // mas agora temos o log para depurar.
+                    }
                 }
             } catch (e) {
                 console.warn("Erro ao buscar dados:", e);
