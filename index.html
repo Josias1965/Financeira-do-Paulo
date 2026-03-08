@@ -504,9 +504,35 @@
             try {
                 const { error } = await client.rpc('delete_user', { user_id: userId });
                 if (error) throw error;
+                alert("Usuário removido com sucesso!");
                 await fetchData();
             } catch (e) {
                 alert("Erro ao remover: " + e.message);
+            }
+            state.loading = false;
+            render();
+        }
+
+        async function updatePassword(userId) {
+            const newPassword = prompt("Digite a nova senha para este usuário:");
+            if (!newPassword || newPassword.length < 6) {
+                alert("Senha inválida (mínimo 6 caracteres).");
+                return;
+            }
+
+            state.loading = true;
+            render();
+            try {
+                // For admin password reset, we use an RPC or the user must be authenticated.
+                // In a simple setup, we'll suggest an RPC if it's the admin doing it.
+                const { error } = await client.rpc('admin_update_user_password', {
+                    u_id: userId,
+                    new_pass: newPassword
+                });
+                if (error) throw error;
+                alert("Senha alterada com sucesso!");
+            } catch (e) {
+                alert("Erro ao alterar senha. Verifique se a função RPC está configurada no Supabase.");
             }
             state.loading = false;
             render();
@@ -862,7 +888,10 @@
                                                 </div>
                                             </div>
                                             <div class="flex items-center gap-2">
-                                                <button onclick="removeUser('${user.id}')" class="p-3 bg-white text-slate-300 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all">
+                                                <button title="Alterar Senha" onclick="updatePassword('${user.id}')" class="p-3 bg-white text-slate-300 hover:text-emerald-600 rounded-xl shadow-sm border border-slate-100 transition-all">
+                                                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                                                </button>
+                                                <button title="Remover" onclick="removeUser('${user.id}')" class="p-3 bg-white text-slate-300 hover:text-red-500 rounded-xl shadow-sm border border-slate-100 transition-all">
                                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                 </button>
                                             </div>
