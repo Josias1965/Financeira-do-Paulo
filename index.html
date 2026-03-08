@@ -316,11 +316,11 @@
                 if (state.currentScreen === 'settings') {
                     const { data: users, error: userError } = await client.rpc('get_users');
                     if (!userError) state.users = users || [];
+                    else console.error("Erro RPC Usuários:", userError);
                 }
             } catch (e) {
                 console.warn("Erro ao buscar dados:", e);
             }
-            state.loading = true; // Still loading? No, should be false
             state.loading = false;
             render();
         }
@@ -915,7 +915,7 @@
         const navigate = (s) => {
             state.currentScreen = s;
             if (state.isSidebarOpen) toggleSidebar();
-            render();
+            fetchData(); // Busca dados atualizados para a nova tela
         };
 
         init();
