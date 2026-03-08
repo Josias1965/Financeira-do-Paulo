@@ -69,7 +69,8 @@
             animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        input {
+        input,
+        select {
             border-radius: 1.25rem !important;
             background-color: #f1f5f9 !important;
             border: 2px solid transparent !important;
@@ -79,7 +80,8 @@
             font-weight: 600;
         }
 
-        input:focus {
+        input:focus,
+        select:focus {
             background-color: white !important;
             border-color: var(--emerald-600) !important;
             outline: none;
@@ -122,29 +124,77 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .card-radius {
+                border-radius: 1.5rem;
+            }
+
+            .sidebar-mobile-open {
+                transform: translateX(0) !important;
+            }
+
+            .sidebar-transition {
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .mobile-overlay {
+                background: rgba(15, 23, 42, 0.4);
+                backdrop-filter: blur(4px);
+            }
+
+            .main-mobile-p {
+                padding: 1.25rem;
+            }
+        }
     </style>
 </head>
 
-<body class="overflow-x-hidden md:p-6 h-screen">
-    <div id="app" class="h-full flex flex-col md:flex-row gap-6">
+<body class="overflow-x-hidden md:p-6 h-screen bg-[#f8fafc]">
+    <div id="app" class="h-full flex flex-col md:flex-row gap-6 relative">
         <!-- Auth View -->
-        <div id="auth-view" class="fixed inset-0 z-50 flex items-center justify-center bg-[#f8fafc]">
+        <div id="auth-view" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f8fafc]">
             <div class="text-center">
                 <div class="loader mx-auto mb-4"></div>
                 <p class="font-bold text-slate-400">Carregando sistema...</p>
             </div>
         </div>
 
+        <!-- Mobile Header (Visible only on mobile) -->
+        <header id="mobile-header"
+            class="md:hidden flex items-center justify-between p-4 bg-white shadow-sm sticky top-0 z-40">
+            <div class="flex items-center gap-2">
+                <div
+                    class="w-10 h-10 emerald-primary rounded-xl flex items-center justify-center shadow-lg shadow-emerald-50">
+                    <i data-lucide="piggy-bank" class="text-white w-5 h-5"></i>
+                </div>
+                <span class="font-black text-slate-800 text-lg">Paulo</span>
+            </div>
+            <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-xl">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </header>
+
+        <!-- Sidebar Backdrop (Mobile) -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()"
+            class="fixed inset-0 z-40 hidden mobile-overlay md:hidden transition-opacity"></div>
+
         <!-- Sidebar -->
         <aside id="sidebar"
-            class="hidden flex-col w-80 bg-white card-radius shadow-soft border border-slate-100 h-full sticky top-0 overflow-hidden">
-            <div class="p-10 flex-1 overflow-y-auto no-scrollbar">
-                <div class="flex items-center gap-3 mb-12">
-                    <div
-                        class="w-12 h-12 emerald-primary rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
-                        <i data-lucide="piggy-bank" class="text-white w-7 h-7"></i>
+            class="sidebar-transition fixed md:sticky top-0 left-0 z-50 flex flex-col w-80 bg-white md:card-radius shadow-xl md:shadow-soft border-r md:border border-slate-100 h-screen md:h-full -translate-x-full md:translate-x-0 overflow-hidden">
+            <div class="p-8 md:p-10 flex-1 overflow-y-auto no-scrollbar">
+                <div class="flex items-center justify-between mb-12">
+                    <div class="flex items-center gap-3 text-left">
+                        <div
+                            class="w-12 h-12 emerald-primary rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
+                            <i data-lucide="piggy-bank" class="text-white w-7 h-7"></i>
+                        </div>
+                        <h1 class="text-xl font-black tracking-tight text-slate-800">Financeira do Paulo</h1>
                     </div>
-                    <h1 class="text-xl font-black tracking-tight text-slate-800">Financeira do Paulo</h1>
+                    <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-400">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
                 </div>
                 <nav class="space-y-4">
                     <button onclick="navigate('loans')" id="nav-loans"
@@ -165,7 +215,7 @@
                     </button>
                 </nav>
             </div>
-            <div class="p-8 mt-auto">
+            <div class="p-8 mt-auto border-t border-slate-50">
                 <div class="bg-emerald-50 card-radius p-5 border border-emerald-100/50">
                     <div class="flex items-center gap-4 mb-4">
                         <img id="user-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Michael"
@@ -185,7 +235,7 @@
         </aside>
 
         <!-- Main -->
-        <main id="main-content" class="flex-1 overflow-y-auto no-scrollbar hidden md:pr-4">
+        <main id="main-content" class="flex-1 overflow-y-auto no-scrollbar md:pr-4 h-full">
             <!-- Content injected here -->
         </main>
     </div>
@@ -207,15 +257,29 @@
             isAuthMode: 'login',
             loading: false,
             loans: [],
-            clients: []
+            clients: [],
+            isSidebarOpen: false
         };
+
+        function toggleSidebar() {
+            state.isSidebarOpen = !state.isSidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (state.isSidebarOpen) {
+                sidebar.classList.add('sidebar-mobile-open');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.remove('sidebar-mobile-open');
+                overlay.classList.add('hidden');
+            }
+        }
 
         async function init() {
             try {
                 const { data, error } = await client.auth.getSession();
                 if (error) {
                     console.error("Erro de autorização Supabase:", error.message);
-                    // Se o erro for de autorização, limpa o estado para forçar novo login
                     if (error.message.includes('authorization')) {
                         state.user = null;
                         render();
@@ -280,7 +344,6 @@
             render();
         }
 
-        // SALVAR CLIENTE
         async function saveClient(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -300,13 +363,12 @@
                 state.currentScreen = 'clients';
                 await fetchData();
             } catch (e) {
-                alert("Erro ao salvar cliente: " + e.message + "\n\nCertifique-se de que a tabela 'clientes' existe com as colunas: nome, cpf, telefone, endereco.");
+                alert("Erro ao salvar cliente: " + e.message);
             }
             state.loading = false;
             render();
         }
 
-        // SALVAR EMPRÉSTIMO
         async function saveLoan(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -344,23 +406,18 @@
             const rateMensal = (loan.taxa_juros_mensal || 0) / 100;
             const dailyRate = rateMensal / 30;
 
-            // 1. CÁLCULO DO CONTRATO (Até o vencimento)
-            // Calculamos meses inteiros baseados em blocos de 30 dias
             const contractDiffTime = Math.abs(dueDate - startDate);
             const contractDays = Math.ceil(contractDiffTime / (1000 * 60 * 60 * 24));
-            const contractMonths = Math.floor(contractDays / 30) || 1; // Mínimo 1 mês
+            const contractMonths = Math.floor(contractDays / 30) || 1;
 
-            // Montante do Contrato
             const montanteContrato = principal * Math.pow(1 + rateMensal, contractMonths);
 
-            // 2. CÁLCULO DE ATRASO (Pós vencimento)
             let montanteFinal = montanteContrato;
             let daysOverdue = 0;
 
             if (today > dueDate) {
                 const overdueDiffTime = Math.abs(today - dueDate);
                 daysOverdue = Math.floor(overdueDiffTime / (1000 * 60 * 60 * 24));
-                // Aplica juro diário sobre o montante acumulado do contrato
                 montanteFinal = montanteContrato * Math.pow(1 + dailyRate, daysOverdue);
             }
 
@@ -410,30 +467,30 @@
             const authView = document.getElementById('auth-view');
             const sidebar = document.getElementById('sidebar');
             const main = document.getElementById('main-content');
+            const mobileHeader = document.getElementById('mobile-header');
 
             if (!state.user) {
                 authView.classList.remove('hidden');
-                sidebar.classList.add('hidden');
-                sidebar.classList.remove('md:flex');
+                sidebar.classList.add('-translate-x-full');
+                mobileHeader.classList.add('hidden');
                 main.classList.add('hidden');
-                main.classList.remove('md:block');
-                const isLogin = state.isAuthMode === 'login';
 
+                const isLogin = state.isAuthMode === 'login';
                 authView.innerHTML = `
-                    <div class="bg-white p-12 card-radius shadow-2xl w-full max-w-md border border-slate-100 animate-slide-up text-center mx-4">
-                        <div class="emerald-primary w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-emerald-100">
-                            <i data-lucide="piggy-bank" class="text-white w-10 h-10"></i>
+                    <div class="bg-white p-8 md:p-12 card-radius shadow-2xl w-full max-w-md border border-slate-100 animate-slide-up text-center mx-4">
+                        <div class="emerald-primary w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-xl shadow-emerald-100">
+                            <i data-lucide="piggy-bank" class="text-white w-8 h-8 md:w-10 md:h-10"></i>
                         </div>
-                        <h2 class="text-3xl font-black mb-2 text-slate-800">${isLogin ? 'Financeira' : 'Criar Conta'}</h2>
-                        <p class="text-slate-400 font-bold mb-10 uppercase tracking-widest text-[10px]">${isLogin ? 'Acesso Restrito' : 'Gestor Admin'}</p>
-                        <form onsubmit="event.preventDefault(); authAction(this.email.value, this.pass.value)" class="space-y-5 text-left">
+                        <h2 class="text-2xl md:text-3xl font-black mb-2 text-slate-800">${isLogin ? 'Financeira' : 'Criar Conta'}</h2>
+                        <p class="text-slate-400 font-bold mb-8 md:mb-10 uppercase tracking-widest text-[9px] md:text-[10px]">${isLogin ? 'Acesso Restrito' : 'Gestor Admin'}</p>
+                        <form onsubmit="event.preventDefault(); authAction(this.email.value, this.pass.value)" class="space-y-4 md:space-y-5 text-left">
                             <input name="email" type="email" placeholder="E-mail" required>
                             <input name="pass" type="password" placeholder="Senha" required>
-                            <button type="submit" class="w-full emerald-primary text-white py-5 rounded-2xl font-black shadow-lg hover:brightness-110 flex items-center justify-center gap-3">
+                            <button type="submit" class="w-full emerald-primary text-white py-4 md:py-5 rounded-2xl font-black shadow-lg hover:brightness-110 flex items-center justify-center gap-3">
                                 ${state.loading ? '<div class="loader"></div>' : (isLogin ? 'Entrar' : 'Cadastrar')}
                             </button>
                         </form>
-                        <button onclick="state.isAuthMode = '${isLogin ? 'signup' : 'login'}'; render();" class="mt-8 text-emerald-600 font-black text-xs uppercase tracking-widest hover:underline">
+                        <button onclick="state.isAuthMode = '${isLogin ? 'signup' : 'login'}'; render();" class="mt-6 md:mt-8 text-emerald-600 font-black text-xs uppercase tracking-widest hover:underline">
                             ${isLogin ? 'Cadastrar novo acesso' : 'Voltar para o Login'}
                         </button>
                     </div>
@@ -443,10 +500,12 @@
             }
 
             authView.classList.add('hidden');
-            sidebar.classList.remove('hidden');
-            sidebar.classList.add('md:flex');
+            mobileHeader.classList.remove('hidden');
             main.classList.remove('hidden');
-            main.classList.add('md:block');
+
+            // Sync user info screen
+            const displayName = state.user.email ? state.user.email.split('@')[0] : 'Usuário';
+            document.getElementById('user-display-name').textContent = displayName;
 
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('sidebar-item-active'));
             document.getElementById('nav-' + (state.currentScreen === 'new-client' ? 'clients' : state.currentScreen))?.classList.add('sidebar-item-active');
@@ -463,15 +522,17 @@
 
         function renderLoans(container) {
             container.innerHTML = `
-                <div class="animate-slide-up py-6 space-y-10">
-                    <div class="flex justify-between items-center">
+                <div class="animate-slide-up py-4 md:py-6 space-y-6 md:space-y-10 px-4 md:px-0">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
                         <div>
-                            <h2 class="text-5xl font-black text-slate-800 tracking-tight">Empréstimos</h2>
-                            <p class="text-slate-400 font-bold mt-2 ml-1 uppercase tracking-widest text-[10px]">VP: Principal | ND: Dias Acumulados | JA: Juros | VTD: Total</p>
+                            <h2 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight">Empréstimos</h2>
+                            <p class="text-slate-400 font-bold mt-1 md:mt-2 uppercase tracking-widest text-[9px] md:text-[10px]">VP: Principal | JA: Juros | VTD: Total</p>
                         </div>
-                        <button onclick="navigate('new-loan')" class="emerald-primary text-white px-10 py-5 pill-radius font-black shadow-2xl shadow-emerald-100 hover:scale-105">+ Novo Empréstimo</button>
+                        <button onclick="navigate('new-loan')" class="emerald-primary text-white px-6 md:px-10 py-3 md:py-5 pill-radius font-black shadow-xl shadow-emerald-100 hover:scale-105 text-sm md:text-base">+ Novo Empréstimo</button>
                     </div>
-                    <div class="bg-white card-radius shadow-soft border border-slate-50 overflow-hidden">
+
+                    <!-- Desktop View Table -->
+                    <div class="hidden md:block bg-white card-radius shadow-soft border border-slate-50 overflow-hidden">
                         <div class="p-10 border-b border-slate-50 bg-slate-50/20 text-[11px] font-black text-slate-300 uppercase tracking-widest grid grid-cols-12 px-12 text-center">
                             <div class="col-span-3 text-left">Cliente</div>
                             <div class="col-span-1">V.P.</div>
@@ -483,11 +544,8 @@
                             <div class="col-span-1 text-right">Ação</div>
                         </div>
                         <div class="p-4 space-y-3">
-                            ${state.loans.length > 0 ? state.loans.map(loan => {
-                const calc = loan.status === 'Quitado' ?
-                    { days: 0, jurosTotal: 0, totalDebito: 0, status: 'Quitado' } :
-                    calculateCurrentDebt(loan);
-
+                            ${state.loans.map(loan => {
+                const calc = loan.status === 'Quitado' ? { days: 0, jurosTotal: 0, totalDebito: 0, status: 'Quitado' } : calculateCurrentDebt(loan);
                 return `
                                 <div class="grid grid-cols-12 items-center p-6 bg-white hover:bg-slate-50 rounded-[2rem] transition-all group border border-transparent hover:border-slate-100 text-center">
                                     <div class="col-span-3 text-left">
@@ -509,9 +567,50 @@
                                         <button title="Baixa" onclick="processPayment('${loan.id}', ${calc.totalDebito})" class="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-600 hover:text-white transition-all"><i data-lucide="minus" class="w-3 h-3"></i></button>
                                         <button title="Excluir" onclick="deleteLoan('${loan.id}')" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash" class="w-3 h-3"></i></button>
                                     </div>
-                                </div>
-                            `}).join('') : '<p class="text-center p-20 text-slate-300 font-bold uppercase tracking-widest text-xs">Aguardando lançamentos...</p>'}
+                                </div>`;
+            }).join('')}
                         </div>
+                    </div>
+
+                    <!-- Mobile View Cards -->
+                    <div class="md:hidden space-y-4">
+                        ${state.loans.map(loan => {
+                const calc = loan.status === 'Quitado' ? { days: 0, jurosTotal: 0, totalDebito: 0, status: 'Quitado' } : calculateCurrentDebt(loan);
+                return `
+                            <div class="bg-white p-6 card-radius shadow-sm border border-slate-100 space-y-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-black text-xl text-slate-800">${loan.clientes?.nome || '---'}</p>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Vencimento: ${new Date(loan.data_vencimento).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <span class="px-3 py-1 pill-radius text-[8px] font-black uppercase tracking-widest ${calc.status === 'Vencido' ? 'bg-red-100 text-red-600' : (calc.status === 'Quitado' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500')}">
+                                        ${calc.status}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 pt-2">
+                                    <div class="bg-slate-50 p-3 rounded-2xl">
+                                        <p class="text-[9px] text-slate-400 font-black uppercase tracking-widest border-b border-slate-100 mb-2 pb-1">Principal</p>
+                                        <p class="font-bold text-slate-700">R$${(loan.valor_principal || 0).toLocaleString('pt-BR')}</p>
+                                    </div>
+                                    <div class="bg-emerald-50 p-3 rounded-2xl">
+                                        <p class="text-[9px] text-emerald-700/50 font-black uppercase tracking-widest border-b border-emerald-100 mb-2 pb-1">Total Devedor</p>
+                                        <p class="font-black text-emerald-700">R$${calc.totalDebito.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 pt-2">
+                                    <button onclick="confirmPayoff('${loan.id}')" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
+                                        <i data-lucide="check" class="w-3 h-3"></i> Quitar
+                                    </button>
+                                    <button onclick="processPayment('${loan.id}', ${calc.totalDebito})" class="flex-1 bg-orange-100 text-orange-600 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
+                                        <i data-lucide="minus" class="w-3 h-3"></i> Baixa
+                                    </button>
+                                    <button onclick="deleteLoan('${loan.id}')" class="w-12 bg-red-50 text-red-500 py-3 rounded-xl font-bold text-xs flex items-center justify-center">
+                                        <i data-lucide="trash" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>`;
+            }).join('')}
+                        ${state.loans.length === 0 ? '<p class="text-center py-10 text-slate-300 font-bold uppercase tracking-widest text-xs">Sem empréstimos...</p>' : ''}
                     </div>
                 </div>
             `;
@@ -521,28 +620,28 @@
         function renderNewLoan(container) {
             const today = new Date().toISOString().split('T')[0];
             container.innerHTML = `
-                <div class="animate-slide-up py-6 space-y-10 max-w-4xl mx-auto">
+                <div class="animate-slide-up py-4 md:py-6 space-y-6 md:space-y-10 max-w-4xl mx-auto px-4 md:px-0">
                     <button onclick="navigate('loans')" class="flex items-center gap-3 text-slate-300 font-black uppercase text-[10px] tracking-widest hover:text-emerald-600 transition-colors">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar para Lista
                     </button>
                     
-                    <div class="bg-white p-16 card-radius shadow-soft border border-slate-100">
-                        <div class="mb-12 border-l-8 border-emerald-600 pl-8">
-                            <h2 class="text-4xl font-black text-slate-800 tracking-tight">Cadastro de Empréstimo</h2>
-                            <p class="text-slate-400 font-bold mt-1 uppercase tracking-[0.2em] text-[10px]">Apenas dados iniciais. Juros e Status são automáticos.</p>
+                    <div class="bg-white p-8 md:p-16 card-radius shadow-soft border border-slate-100">
+                        <div class="mb-8 md:mb-12 border-l-8 border-emerald-600 pl-6 md:pl-8">
+                            <h2 class="text-2xl md:text-4xl font-black text-slate-800 tracking-tight">Cadastro de Empréstimo</h2>
+                            <p class="text-slate-400 font-bold mt-1 uppercase tracking-[0.2em] text-[9px] md:text-[10px]">Juros e Status são automáticos.</p>
                         </div>
                         
-                        <form onsubmit="saveLoan(event)" class="space-y-8">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="col-span-1 md:col-span-2 space-y-3">
+                        <form onsubmit="saveLoan(event)" class="space-y-6 md:space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                                <div class="col-span-1 md:col-span-2 space-y-2 md:space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Selecionar Cliente</label>
-                                    <select name="cliente_id" required class="w-full bg-slate-50 border-none px-12 py-5 rounded-2xl font-bold focus:ring-4 focus:ring-emerald-50 outline-none appearance-none">
+                                    <select name="cliente_id" required class="w-full">
                                         <option value="" disabled selected>Escolha um cliente da lista</option>
-                                        ${state.clients.map(c => `<option value="${c.id}">${c.nome} - CPF: ${c.cpf || '---'}</option>`).join('')}
+                                        ${state.clients.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}
                                     </select>
                                 </div>
                                 
-                                <div class="space-y-3">
+                                <div class="space-y-2 md:space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Data do Empréstimo</label>
                                     <input id="data_emprestimo" name="data_emprestimo" type="date" value="${today}" required onchange="
                                         const d = new Date(this.value);
@@ -550,27 +649,27 @@
                                         document.getElementById('data_vencimento').value = d.toISOString().split('T')[0];
                                     ">
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-2 md:space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Data de Vencimento</label>
                                     <input id="data_vencimento" name="data_vencimento" type="date" required>
                                 </div>
 
-                                <div class="space-y-3">
+                                <div class="space-y-2 md:space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Valor do Empréstimo (R$)</label>
-                                    <input id="valor_principal" name="valor_principal" type="number" step="0.01" placeholder="0,00" required>
+                                    <input name="valor_principal" type="number" step="0.01" placeholder="0,00" required>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-2 md:space-y-3">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Taxa de Juros Mensal (%)</label>
-                                    <input id="taxa_juros_mensal" name="taxa_juros_mensal" type="number" step="0.1" placeholder="0,0" required>
+                                    <input name="taxa_juros_mensal" type="number" step="0.1" placeholder="0,0" required>
                                 </div>
                             </div>
                             
-                            <div class="pt-10 flex gap-4">
-                                <button type="button" onclick="navigate('loans')" class="flex-1 bg-slate-100 text-slate-400 py-6 rounded-3xl font-black text-xl hover:bg-slate-200 transition-all">
+                            <div class="pt-6 md:pt-10 flex flex-col md:flex-row gap-4">
+                                <button type="button" onclick="navigate('loans')" class="order-2 md:order-1 flex-1 bg-slate-100 text-slate-400 py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-lg md:text-xl hover:bg-slate-200 uppercase tracking-widest text-[11px]">
                                     Cancelar
                                 </button>
-                                <button type="submit" class="flex-[2] emerald-primary text-white py-6 rounded-3xl font-black text-xl shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all">
-                                    ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="check-circle" class="w-6 h-6"></i> Salvar Empréstimo'}
+                                <button type="submit" class="order-1 md:order-2 flex-[2] emerald-primary text-white py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-lg md:text-xl shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all">
+                                    ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="check-circle" class="w-6 h-6"></i> SALVAR'}
                                 </button>
                             </div>
                         </form>
@@ -582,89 +681,90 @@
 
         function renderClients(container) {
             container.innerHTML = `
-                <div class="animate-slide-up py-6 space-y-10">
-                    <div class="flex justify-between items-center">
+                <div class="animate-slide-up py-4 md:py-6 space-y-6 md:space-y-10 px-4 md:px-0">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
                         <div>
-                            <h2 class="text-5xl font-black text-slate-800 tracking-tight">Clientes</h2>
-                            <p class="text-slate-400 font-bold mt-2 ml-1 uppercase tracking-widest text-[10px]">Gerenciamento de Carteira</p>
+                            <h2 class="text-3xl md:text-5xl font-black text-slate-800 tracking-tight">Clientes</h2>
+                            <p class="text-slate-400 font-bold mt-1 md:mt-2 uppercase tracking-widest text-[9px] md:text-[10px]">Gestão de Carteira</p>
                         </div>
-                        <button onclick="navigate('new-client')" class="emerald-primary text-white px-10 py-5 pill-radius font-black shadow-2xl shadow-emerald-100 hover:scale-105">+ Cadastrar Cliente</button>
+                        <button onclick="navigate('new-client')" class="emerald-primary text-white px-6 md:px-10 py-3 md:py-5 pill-radius font-black shadow-xl shadow-emerald-100 hover:scale-105 text-sm md:text-base">+ Novo Cliente</button>
                     </div>
                     
-                    <div class="bg-white card-radius shadow-soft border border-slate-50 overflow-hidden">
-                        <div class="p-10 border-b border-slate-50 bg-slate-50/20 text-[11px] font-black text-slate-300 uppercase tracking-widest grid grid-cols-12 px-12">
-                            <div class="col-span-5">Nome completo / CPF</div>
-                            <div class="col-span-4">Contato / Telefone</div>
-                            <div class="col-span-3 text-right">Opções</div>
-                        </div>
-                        <div class="p-4 space-y-3">
-                            ${state.clients.length > 0 ? state.clients.map(c => `
-                                <div class="grid grid-cols-12 items-center p-8 bg-white hover:bg-emerald-50/30 rounded-[2rem] transition-all group border border-transparent hover:border-emerald-100">
-                                    <div class="col-span-5">
-                                        <p class="font-black text-xl text-slate-800 tracking-tight">${c.nome}</p>
-                                        <p class="text-[10px] font-black text-slate-300 mt-1 tracking-[0.2em] uppercase">${c.cpf || 'CPF não informado'}</p>
-                                    </div>
-                                    <div class="col-span-4 text-emerald-700 font-bold flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><i data-lucide="phone" class="w-4 h-4"></i></div>
-                                        ${c.telefone || '---'}
-                                    </div>
-                                    <div class="col-span-3 text-right flex justify-end gap-3">
-                                        <button class="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:emerald-text shadow-sm transition-all"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                        <button class="p-4 bg-white border border-slate-100 rounded-2xl text-slate-300 hover:text-red-500 shadow-sm transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                    </div>
+                    <div class="space-y-3">
+                        ${state.clients.map(c => `
+                            <div class="bg-white p-5 md:p-8 card-radius shadow-sm md:shadow-soft border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 group hover:border-emerald-100 transition-all">
+                                <div class="flex-1">
+                                    <p class="font-black text-lg md:text-xl text-slate-800 tracking-tight">${c.nome}</p>
+                                    <p class="text-[9px] md:text-[10px] font-black text-slate-300 mt-1 tracking-widest uppercase">${c.cpf || 'CPF não informado'}</p>
                                 </div>
-                            `).join('') : '<p class="text-center p-20 text-slate-300 font-bold uppercase tracking-widest text-xs">Puxando clientes do banco...</p>'}
-                        </div>
+                                <div class="flex items-center gap-3 text-emerald-700 font-bold bg-emerald-50/50 p-3 md:p-0 md:bg-transparent rounded-xl">
+                                    <div class="w-8 h-8 md:w-10 md:h-10 bg-emerald-100 md:bg-emerald-50 rounded-lg md:rounded-xl flex items-center justify-center text-emerald-600"><i data-lucide="phone" class="w-4 h-4"></i></div>
+                                    <span class="text-sm md:text-base">${c.telefone || '---'}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button class="flex-1 md:flex-none p-3 md:p-4 bg-white border border-slate-100 rounded-xl md:rounded-2xl text-slate-300 hover:text-emerald-600 shadow-sm transition-all flex items-center justify-center"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                    <button class="flex-1 md:flex-none p-3 md:p-4 bg-white border border-slate-100 rounded-xl md:rounded-2xl text-slate-300 hover:text-red-500 shadow-sm transition-all flex items-center justify-center"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${state.clients.length === 0 ? '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest text-xs">Sem clientes cadastrados...</p>' : ''}
                     </div>
                 </div>
             `;
+            lucide.createIcons();
         }
 
         function renderNewClient(container) {
             container.innerHTML = `
-                <div class="animate-slide-up py-6 space-y-10 max-w-4xl mx-auto">
+                <div class="animate-slide-up py-4 md:py-6 space-y-6 md:space-y-10 max-w-4xl mx-auto px-4 md:px-0">
                     <button onclick="navigate('clients')" class="flex items-center gap-3 text-slate-300 font-black uppercase text-[10px] tracking-widest hover:text-emerald-600 transition-colors">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar para Lista
                     </button>
                     
-                    <div class="bg-white p-16 card-radius shadow-soft border border-slate-100">
-                        <div class="mb-12 border-l-8 border-emerald-600 pl-8">
-                            <h2 class="text-4xl font-black text-slate-800 tracking-tight">Novo Cliente</h2>
+                    <div class="bg-white p-8 md:p-16 card-radius shadow-soft border border-slate-100">
+                        <div class="mb-8 md:mb-12 border-l-8 border-emerald-600 pl-6 md:pl-8">
+                            <h2 class="text-2xl md:text-4xl font-black text-slate-800 tracking-tight">Novo Cliente</h2>
                             <p class="text-slate-400 font-bold mt-1 uppercase tracking-[0.2em] text-[10px]">Cadastro de Dados Pessoais</p>
                         </div>
                         
-                        <form onsubmit="saveClient(event)" class="space-y-8">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="space-y-3">
+                        <form onsubmit="saveClient(event)" class="space-y-6 md:space-y-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                                <div class="space-y-2">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Nome Completo</label>
                                     <input name="nome" type="text" placeholder="Nome do cliente" required>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-2">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">CPF</label>
                                     <input name="cpf" type="text" placeholder="000.000.000-00" required>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-2">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Telefone / WhatsApp</label>
-                                    <input name="telefone" type="text" placeholder="(00) 00000-0000">
+                                    <input name="telefone" type="text" placeholder="(11) 99999-9999">
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-2">
                                     <label class="px-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Endereço</label>
                                     <input name="endereco" type="text" placeholder="Rua, Número, Bairro">
                                 </div>
                             </div>
                             
-                            <div class="pt-10">
-                                <button type="submit" class="w-full emerald-primary text-white py-6 rounded-3xl font-black text-xl shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all">
-                                    ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="check-circle" class="w-6 h-6"></i> Confirmar Cadastro'}
+                            <div class="pt-6 md:pt-10">
+                                <button type="submit" class="w-full emerald-primary text-white py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-lg md:text-xl shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all">
+                                    ${state.loading ? '<div class="loader"></div>' : '<i data-lucide="check-circle" class="w-6 h-6"></i> CADASTRAR CLIENTE'}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             `;
+            lucide.createIcons();
         }
 
-        const navigate = (s) => { state.currentScreen = s; render(); };
+        const navigate = (s) => {
+            state.currentScreen = s;
+            if (state.isSidebarOpen) toggleSidebar();
+            render();
+        };
+
         init();
     </script>
 </body>
